@@ -2294,7 +2294,9 @@ end:
 	RomDataExit();
 	IpsPatchExit();
 
-	return true;
+	// A rendered error screen is not a loaded game. Let the frontend stop
+	// startup and disable state capture instead of running the error UI.
+	return false;
 }
 
 static int retro_dat_romset_path(const struct retro_game_info* info)
