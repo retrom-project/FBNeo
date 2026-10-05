@@ -1,3 +1,6 @@
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 #include <vector>
 #include <string>
 #include <sys/types.h>
@@ -1331,6 +1334,18 @@ int CreateAllDatfiles(char* dat_folder)
 
 	return nRet;
 }
+
+#ifdef __EMSCRIPTEN__
+// Build-time export from the very same ROM tables linked into the shipped Wasm.
+// Called before retro_init; it never starts a game or changes production startup.
+extern "C" EMSCRIPTEN_KEEPALIVE int retrom_export_arcade_dat()
+{
+    if (BurnLibInit() != 0) return 1;
+    const int result = create_datfile("/fbneo-arcade.dat", DAT_ARCADE_ONLY | RETROM_DAT_REQUIRED_ONLY);
+    BurnLibExit();
+    return result;
+}
+#endif
 
 void retro_init()
 {

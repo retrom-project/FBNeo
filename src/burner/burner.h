@@ -214,6 +214,7 @@ TCHAR* DecorateGenreInfo();
 void ComputeGammaLUT();
 
 // dat.cpp
+#define RETROM_DAT_REQUIRED_ONLY (1 << 29)
 #define DAT_ARCADE_ONLY			0
 #define DAT_MEGADRIVE_ONLY		1
 #define DAT_PCENGINE_ONLY		2
