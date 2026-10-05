@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "forkRepository": "https://github.com/retrom-project/FBNeo",
+  "defaultBranch": "retrom/gd5f072e147cf",
+  "upstreamMirrorBranch": "master",
+  "upstreams": [
+    {
+      "role": "core",
+      "repository": "https://github.com/EmulatorJS/FBNeo",
+      "refType": "COMMIT",
+      "ref": "d5f072e147cfd01cb7c095470fd9c5c2697753d8",
+      "commit": "d5f072e147cfd01cb7c095470fd9c5c2697753d8"
+    }
+  ],
+  "releaseTagPattern": "^retrom-core-gd5f072e147cf-r[1-9][0-9]*(-rc\\.[1-9][0-9]*)?$",
+  "adapterAbi": "emulatorjs-content-result-v1",
+  "releaseAssets": [
+    "fbneo-wasm.data",
+    "fbneo.json",
+    "LICENSE",
+    "fbneo-arcade.dat",
+    "fbneo-content-pair.json",
+    "rpg-runtime-release.json"
+  ]
+}

@@ -23,10 +23,10 @@ projectfiles/xcode/build
 nvram
 *.nvr
 config/*
+!config/core.json
 fbneo.dat
 
 # libretro
-/.github
 *.so
 *.o
 *.d
@@ -35,3 +35,8 @@ src/burner/libretro/m68kmake
 src/burner/libretro/pgmspritecreate
 !gamelist.txt
 !src/dep/generated/
+/.cache/
+
+/src/burner/libretro/*_libretro_emscripten.bc
+
+__pycache__/
