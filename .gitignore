@@ -23,6 +23,7 @@ projectfiles/xcode/build
 nvram
 *.nvr
 config/*
+!config/core.json
 fbneo.dat
 
 # libretro
