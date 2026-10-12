@@ -25,3 +25,19 @@ clean candidate at the tag commit and validates every declared file and checksum
 CI builds the same candidate and uploads it for review. The release workflow only
 publishes existing annotated tags reachable from the maintenance branch. Product
 acceptance and explicit publication authorization remain required before tagging.
+
+## Upstream synchronization
+
+The core baseline is libretro/FBNeo commit
+`6e7b7ea6c61a594fbaf2a2071dff326290fedcd1` (2026-10-10). It is merged into
+the existing `retrom/gd5f072e147cf` maintenance line; the branch name records
+its origin, while `retrom-fork.json` records the current source baseline.
+New releases use `retrom-core-g6e7b7ea6c61a-rN`; existing tags remain immutable.
+
+The EmulatorJS Emscripten thread flags and optimization settings from
+`d5f072e147cfd01cb7c095470fd9c5c2697753d8` remain in the build. The pinned
+EmulatorJS RetroArch frontend, native content-load receipt, failed-load rejection,
+and required-only DAT exported from the shipped Wasm remain Retrom-owned.
+A new core changes checkpoint fingerprints; cross-core-version instantaneous
+saves are not guaranteed. ROM compatibility must be checked against the new
+paired DAT, including parent and BIOS members.

@@ -19,7 +19,7 @@ with tempfile.TemporaryDirectory(dir=root/'.cache',prefix='package-') as temp:
  for p in stage.iterdir():p.chmod(0o644);os.utime(p,(0,0))
  subprocess.run(['7z','a','-mtm=off','-mta=off','-mtc=off','-bd','-bso0','-bsp0','-t7z',str(output/'fbneo-wasm.data'),*sorted(p.name for p in stage.iterdir())],cwd=stage,check=True)
 (output/'LICENSE').write_bytes(notices)
-timestamp=datetime.fromtimestamp(1779944524,timezone.utc).isoformat()
+timestamp=datetime.fromtimestamp(1791652150,timezone.utc).isoformat()
 (output/'fbneo.json').write_text(json.dumps({'core':core,'buildStart':timestamp,'buildEnd':timestamp,'options':json.loads((root/'config/core.json').read_text())['options']})+'\n')
 subprocess.run([os.environ.get('RETROM_NODE','node'),str(root/'.github/retrom/export-dat.cjs'),str(output/'fbneo-arcade.dat')],check=True)
 pair={'schemaVersion':1,'kind':'CORE_DAT_PAIR','core':{'filename':'fbneo-wasm.data','sha256':sha(output/'fbneo-wasm.data')},'dat':{'filename':'fbneo-arcade.dat','sha256':sha(output/'fbneo-arcade.dat')},'sourceCommit':fork['upstreams'][0]['commit'],'generator':{'method':'SHIPPED_WASM','symbol':'retrom_export_arcade_dat','wasmSha256':sha(build/'fbneo_libretro.wasm'),'sha256':sha(root/'.github/retrom/export-dat.cjs')},'buildConfigSha256':sha(root/'.github/retrom/compile.sh')}

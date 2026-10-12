@@ -6,13 +6,13 @@
   "upstreams": [
     {
       "role": "core",
-      "repository": "https://github.com/EmulatorJS/FBNeo",
+      "repository": "https://github.com/libretro/FBNeo",
       "refType": "COMMIT",
-      "ref": "d5f072e147cfd01cb7c095470fd9c5c2697753d8",
-      "commit": "d5f072e147cfd01cb7c095470fd9c5c2697753d8"
+      "ref": "6e7b7ea6c61a594fbaf2a2071dff326290fedcd1",
+      "commit": "6e7b7ea6c61a594fbaf2a2071dff326290fedcd1"
     }
   ],
-  "releaseTagPattern": "^retrom-core-gd5f072e147cf-r[1-9][0-9]*(-rc\\.[1-9][0-9]*)?$",
+  "releaseTagPattern": "^retrom-core-g6e7b7ea6c61a-r[1-9][0-9]*(-rc\\.[1-9][0-9]*)?$",
   "adapterAbi": "emulatorjs-content-result-v1",
   "releaseAssets": [
     "fbneo-wasm.data",

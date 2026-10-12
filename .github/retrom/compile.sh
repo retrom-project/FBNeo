@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd /work
-export SOURCE_DATE_EPOCH=1779944524
+export SOURCE_DATE_EPOCH=1791652150
 emmake make -C src/burner/libretro platform=emscripten CC=emcc CXX=em++ AR=emar -j8
 emcc -O3 -c .github/retrom/content-load.c -o .cache/content-load.o
 cp src/burner/libretro/fbneo_libretro_emscripten.bc .cache/retroarch/libretro_emscripten.bc

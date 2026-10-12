@@ -8,7 +8,7 @@
 - Run the native receipt regression, Python packaging tests, and
   `.github/rpg-runtime/build-candidate.sh` before review. Validate changed behavior
   through Retrom PFB import, review, gameplay/input, save and new-session restore.
-- Stable annotated `retrom-core-gd5f072e147cf-rN` tags must belong to the maintenance
+- Stable annotated `retrom-core-g6e7b7ea6c61a-rN` tags must belong to the maintenance
   branch. Releases are immutable; never move tags or overwrite assets. Candidate
   validation does not authorize a release, merge, or production deployment.
 - Never commit games, BIOS, credentials, build outputs, dependency caches or host paths.

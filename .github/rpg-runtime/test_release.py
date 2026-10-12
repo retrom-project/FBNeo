@@ -20,7 +20,7 @@ class ReleaseTests(unittest.TestCase):
         self.candidate.mkdir()
         self.config = json.loads((ROOT / "retrom-fork.json").read_text())
         self.commit = "a" * 40
-        self.tag = self.config["defaultBranch"].replace("retrom/", "retrom-core-") + "-r1"
+        self.tag = "retrom-core-g" + self.config["upstreams"][0]["commit"][:12] + "-r1"
         records = []
         for name in self.config["releaseAssets"]:
             if name == "rpg-runtime-release.json":

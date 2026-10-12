@@ -4,7 +4,7 @@ on:
     branches: [retrom/gd5f072e147cf]
   push:
     branches: [retrom/gd5f072e147cf, 'feat/**', 'fix/**', 'build/**']
-    tags: [retrom-core-gd5f072e147cf-r*]
+    tags: [retrom-core-g6e7b7ea6c61a-r*]
   workflow_dispatch:
 permissions:
   contents: read
