@@ -1164,6 +1164,11 @@ int ProcessCmdLine()
 			return 1;
 		}
 
+		if (_tcscmp(szName, _T("-listinfogbaonly")) == 0) {
+			write_datfile(DAT_GBA_ONLY, stdout);
+			return 1;
+		}
+
 		if (_tcscmp(szName, _T("-listinfongponly")) == 0) {
 			write_datfile(DAT_NGP_ONLY, stdout);
 			return 1;
@@ -1171,6 +1176,11 @@ int ProcessCmdLine()
 
 		if (_tcscmp(szName, _T("-listinfochannelfonly")) == 0) {
 			write_datfile(DAT_CHANNELF_ONLY, stdout);
+			return 1;
+		}
+
+		if (_tcscmp(szName, _T("-listinfoastrocadeonly")) == 0) {
+			write_datfile(DAT_ASTROHOME_ONLY, stdout);
 			return 1;
 		}
 
@@ -1209,7 +1219,8 @@ int ProcessCmdLine()
 		}
 	}
 
-	if (_tcsicmp(&szName[_tcslen(szName) - 4], _T(".cue")) == 0) {
+	if ((_tcsicmp(&szName[_tcslen(szName) - 4], _T(".cue")) == 0) ||
+		(_tcsicmp(&szName[_tcslen(szName) - 4], _T(".chd")) == 0)) {
 		// Neogeo CD Handling
 		_tcscpy(CDEmuImage, szName);
 		_tcscpy(szName, _T("neocdz"));
@@ -1430,8 +1441,8 @@ static void CreateSupportFolders()
 		{_T("support/hdd/")},
 		{_T("support/ips/")},
 		{_T("support/romdata/")},
-		{_T("support/neocdz/")},
-		{_T("support/neocdzpreviews/")},
+		{_T("support/cdcovers/")},
+		{_T("support/cdpreviews/")},
 		{_T("support/blend/")},
 		{_T("support/select/")},
 		{_T("support/versus/")},
@@ -1448,7 +1459,8 @@ static void CreateSupportFolders()
 		{_T("support/history/")},
 		{_T("support/lua/")},
 		{_T("support/shaders/")},
-		{_T("neocdiso/")},
+		{_T("support/bezel/")},
+		{_T("cdiso/")},
 		// rom directories
 		{_T("roms/arcade/")},
 		{_T("roms/megadrive/")},
@@ -1464,8 +1476,10 @@ static void CreateSupportFolders()
 		{_T("roms/nes/")},
 		{_T("roms/fds/")},
 		{_T("roms/snes/")},
+		{_T("roms/gba/")},
 		{_T("roms/ngp/")},
 		{_T("roms/channelf/")},
+		{_T("roms/astrocade/")},
 		{_T("roms/romdata/")},
 		{_T("\0")} // END of list
 	};

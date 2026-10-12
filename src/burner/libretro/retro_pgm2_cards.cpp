@@ -1,12 +1,10 @@
 // PGM2 Memory card selection for libretro: scan 'g_save_dir'/fbneo/pgm2_memcards/<drv>_pN_*.pg2|.bin
 
-#ifndef NO_PGM2
-
-#include "retro_pgm2_cards.h"
 #include "retro_common.h"
 
-#include "burn.h"
-#include "state.h"
+#ifdef BUILD_PGM2
+
+#include "retro_pgm2_cards.h"
 #include "drv/pgm2/pgm2.h"
 
 #include <retro_dirent.h>
@@ -41,10 +39,28 @@ static UINT8 s_pending_card_image[PGM2_CARD_SIZE];
 static std::string s_active_file_path[4];
 static std::string s_latest_new_card_path[4];
 
+static const char* PGM2_OPT_EMPTY = "empty";
+static const char* PGM2_OPT_DEFAULT = "default";
+static const char* PGM2_OPT_TEMPORARY = "temporary";
+static const char* PGM2_OPT_NEW = "new";
+static const char* PGM2_OPT_LATEST_NEW_FILE = "latest_new_card_file";
+
+/*
+ * PGM2 driver slot counts and save compatibility.
+ *
+ * 1. Original Drivers: Region fixed by driver name.
+ *    - Same Region, Diff Version: Compatible (e.g., CN v103 <-> CN v104).
+ *    - Different Region: Incompatible (e.g., CN <-> TW).
+ *
+ * 2. Decrypted Drivers (e.g., orleg2d): Single name; region set via DIPs.
+ *    - WARNING: Cross-region saves are incompatible.
+ *      Players must ensure the loaded card matches the active DIP region.
+ */
 static const struct {
     const char* drv_name;
     INT32 max_slots;
 } pgm2_slot_table[] = {
+
     // ORLEG2
     { "orleg2",           0 },  // overseas (V104)
     { "orleg2_103",       0 },  // overseas
@@ -61,6 +77,9 @@ static const struct {
     { "orleg2_104tw",     4 },  // Taiwan
     { "orleg2_103tw",     4 },  // Taiwan
     { "orleg2_101tw",     4 },  // Taiwan
+    { "orleg2d",          4 },  // Decrypted (V104)
+    { "orleg2d_103",      4 },  // Decrypted
+    { "orleg2d_101",      4 },  // Decrypted
 
     // KOV2NL
     { "kov2nl",           4 },  // overseas (V302)
@@ -78,16 +97,25 @@ static const struct {
     { "kov2nl_302tw",     4 },  // Taiwan
     { "kov2nl_301tw",     4 },  // Taiwan
     { "kov2nl_300tw",     4 },  // Taiwan
+    { "kov2nld",          4 },  // Decrypted (V302)
+    { "kov2nld_301",      4 },  // Decrypted
+    { "kov2nld_300",      4 },  // Decrypted
 
     // KOV3
-    { "kov3",             2 },
+    { "kov3",             2 },  // (V104)
     { "kov3_102",         2 },
     { "kov3_101",         2 },
     { "kov3_100",         2 },
+    { "kov3d",            2 },  // Decrypted (V104)
+    { "kov3d_102",        2 },  // Decrypted
+    { "kov3d_101",        2 },  // Decrypted
+    { "kov3d_100",        2 },  // Decrypted
 
     // No card slots
     { "ddpdojt",          0 },
+    { "ddpdojtd",         0 },  // Decrypted
     { "kof98umh",         0 },
+    { "kof98umhd",        0 },  // Decrypted
 };
 
 static INT32 get_pgm2_slot_count(const char* drv_name)
@@ -379,7 +407,12 @@ static void eject_slot(int slot) {
     }
 
     INT32 nMinVersion = 0;
+    INT32 (__cdecl *prev_burn_acb)(struct BurnArea*) = BurnAcb;
+
+    BurnAcb = pgm2_card_noop_callback;
     BurnAreaScan(ACB_READ | ACB_MEMCARD | ACB_MEMCARD_ACTION, &nMinVersion);
+
+    BurnAcb = prev_burn_acb;
 }
 
 static void save_active_slot_file(int slot)
@@ -433,9 +466,9 @@ static void scan_slot_files(int slot, const char* drvname, char dir[MAX_PATH])
 			const char* name = names[i].c_str();
 			log_cb(RETRO_LOG_INFO, "[FBNeo PGM2 cards] slot P%d: [%d] trying name=\"%s\"\n", slot + 1, i, name);
 			// <drvname>_pN_YYYYMMDD_HHMMSS.pg2
-			int slot_num;
-			int year, month, day, hour, min, sec;
-			int parsed = sscanf(name, "%*[^_]_%*[^_]_p%d_%4d%2d%2d_%2d%2d%2d.pg2",
+			int slot_num = 0;
+			int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
+			int parsed = sscanf(name + strlen(drvname), "_p%d_%4d%2d%2d_%2d%2d%2d.pg2",
 					   &slot_num, &year, &month, &day, &hour, &min, &sec);
 			log_cb(RETRO_LOG_INFO, "[FBNeo PGM2 cards] slot P%d: [%d] sscanf parsed=%d, slot_num=%d, date=%04d%02d%02d %02d:%02d:%02d\n",
 				slot + 1, i, parsed, slot_num, year, month, day, hour, min, sec);
@@ -495,19 +528,19 @@ static void build_slot_option(int slot)
 	L.clear();
 
 	//fixed options
-	add_fixed_option(L, "empty",                 RETRO_PGM2_EMPTY_SLOT);
-	add_fixed_option(L, "default",               RETRO_PGM2_DEFAULT_CARD);
-	add_fixed_option(L, "temporary",             RETRO_PGM2_TEMPORARY_CARD);
-	add_fixed_option(L, "new",                   RETRO_PGM2_NEW_CARD);
-	add_fixed_option(L, "latest_new_card_file",  RETRO_PGM2_LATEST_NEW_CARD_FILE);
+	add_fixed_option(L, PGM2_OPT_EMPTY, RETRO_PGM2_EMPTY_SLOT);
+	add_fixed_option(L, PGM2_OPT_DEFAULT, RETRO_PGM2_DEFAULT_CARD);
+	add_fixed_option(L, PGM2_OPT_TEMPORARY, RETRO_PGM2_TEMPORARY_CARD);
+	add_fixed_option(L, PGM2_OPT_NEW, RETRO_PGM2_NEW_CARD);
+	add_fixed_option(L, PGM2_OPT_LATEST_NEW_FILE, RETRO_PGM2_LATEST_NEW_CARD_FILE);
 
 	//file options
 	const size_t nfiles = s_file_paths[slot].size();
 	char idx[12];
 	for (size_t i = 0; i < nfiles; i++) {
-		snprintf(idx, sizeof(idx), "%u", (unsigned)(i + 1));
-		std::string label = label_for_card_file(s_file_paths[slot][i].c_str());
-		add_file_option(L, idx, label);
+		const char* fname = s_file_paths[slot][i].c_str();
+		std::string label = label_for_card_file(fname);
+		add_file_option(L, fname, label);
 	}
 
 	char slot_ch = (char)('1' + slot);
@@ -611,6 +644,29 @@ void retro_pgm2_cards_refresh_environment()
 	retro_pgm2_cards_apply_variables();
 }
 
+
+void set_option_applied(int slot, const char* value) {
+    struct retro_variable set_var = {0};
+    char key_apply[48];
+    snprintf(key_apply, sizeof(key_apply), "fbneo-pgm2-ic-p%d", slot + 1);
+    set_var.key = key_apply;
+    set_var.value = value;
+    environ_cb(RETRO_ENVIRONMENT_SET_VARIABLE, &set_var);
+    strncpy(s_last_applied[slot], value, sizeof(s_last_applied[slot]) - 1);
+    s_last_applied[slot][sizeof(s_last_applied[slot]) - 1] = '\0';
+}
+
+
+/*
+ * Slot settings are global across all PGM2 games (e.g., "Use Temporary Card").
+ *
+ * Important: Ensure the desired memory card is selected before entering the character selection screen.
+ *
+ * Known Behavior on Game Switch:
+ * 1. Specifically Named Card: Reverts to "Empty Slot" if the new game has a different
+ *    driver name, as the option value (containing the driver name) becomes invalid.
+ * 2. Latest New Card File: Reverts to "Empty Slot" if no matching file is found.
+ */
 static void apply_one_slot(int slot)
 {
 	if (slot < 0 || slot >= 4 || !Pgm2Cards[slot])
@@ -632,14 +688,14 @@ static void apply_one_slot(int slot)
 	save_active_slot_file(slot);
 
 	//Empty Slots
-	if (strcmp(var.value, "empty") == 0) {
+	if (strcmp(var.value, PGM2_OPT_EMPTY) == 0) {
 		eject_slot(slot);
-		log_cb(RETRO_LOG_WARN, "[FBNeo PGM2 cards] slot P%d: Use Empty Slot; Eject Card File.\n", slot + 1);
+		log_cb(RETRO_LOG_INFO, "[FBNeo PGM2 cards] slot P%d: Use Empty Slot; Eject Card File.\n", slot + 1);
 		return;
 	}
 
 	// Use Default Memory Card File, end with '_default', Only one exists. If Failed, fall back to Temporary Card.
-	if (strcmp(var.value, "default") == 0) {
+	if (strcmp(var.value, PGM2_OPT_DEFAULT) == 0) {
 		if (!load_or_create_default_slot_card(slot)) {
 			log_cb(RETRO_LOG_ERROR, "[FBNeo PGM2 cards] slot P%d: failed to load/create default card file\n", slot + 1);
 			memset(s_last_applied[slot], 0, sizeof(s_last_applied[slot]));
@@ -651,7 +707,7 @@ static void apply_one_slot(int slot)
 	}
 
 	// Use IN-Memory Temporary Card, No File. Expires on Exit Game.
-	if (strcmp(var.value, "temporary") == 0) {
+	if (strcmp(var.value, PGM2_OPT_TEMPORARY) == 0) {
 		if (!build_builtin_card_image(s_pending_card_image, sizeof(s_pending_card_image))) {
 			log_cb(RETRO_LOG_ERROR, "[FBNeo PGM2 cards] slot P%d: failed to use temporary card \n", slot + 1);
 			memset(s_last_applied[slot], 0, sizeof(s_last_applied[slot]));
@@ -665,7 +721,7 @@ static void apply_one_slot(int slot)
 	}
 
 	// Create New Memory Card File, end with '_timestamped'. Multiple exist.
-	if (strcmp(var.value, "new") == 0) {
+	if (strcmp(var.value, PGM2_OPT_NEW) == 0) {
 		std::string new_path;
 		if (!create_timestamped_slot_card(slot, new_path)) {
 			log_cb(RETRO_LOG_ERROR, "[FBNeo PGM2 cards] slot P%d: failed to create timestamped card file\n", slot + 1);
@@ -680,22 +736,14 @@ static void apply_one_slot(int slot)
 			slot + 1, new_path.c_str());
 
 		// notifying frontend to select 'latest_new_card_file'
-		struct retro_variable set_var = {0};
-		char key_apply[48];
-		snprintf(key_apply, sizeof(key_apply), "fbneo-pgm2-ic-p%d", slot + 1);
-		set_var.key = key_apply;
-		set_var.value = "latest_new_card_file";
-		environ_cb(RETRO_ENVIRONMENT_SET_VARIABLE, &set_var);
-		strncpy(s_last_applied[slot], set_var.value, sizeof(s_last_applied[slot]) - 1);
-		s_last_applied[slot][sizeof(s_last_applied[slot]) - 1] = '\0';
-
-		log_cb(RETRO_LOG_INFO, "[FBNeo PGM2 cards] slot P%d: new card created, notifying frontend to select 'latest_new_card_file'\n", slot + 1);
+		set_option_applied(slot, PGM2_OPT_LATEST_NEW_FILE);
+		log_cb(RETRO_LOG_INFO, "[FBNeo PGM2 cards] slot P%d: new card created, notifying frontend to select '%s'\n", slot + 1, PGM2_OPT_LATEST_NEW_FILE);
 
 		return;
 	}
 
 	//Use latest New Card File ,Format: <drvname>_pN_YYYYMMDD_HHMMSS.pg2
-	if (strcmp(var.value, "latest_new_card_file") == 0) {
+	if (strcmp(var.value, PGM2_OPT_LATEST_NEW_FILE) == 0) {
 		if (!s_latest_new_card_path[slot].empty()) {
 			if (read_raw_card_file(s_latest_new_card_path[slot].c_str(), s_pending_card_image, sizeof(s_pending_card_image))) {
 				reinsert_slot_with_pending_image(slot);
@@ -706,23 +754,33 @@ static void apply_one_slot(int slot)
 				log_cb(RETRO_LOG_ERROR, "[FBNeo PGM2 cards] slot P%d: latest_new_card_file: failed to read \"%s\".\n", slot + 1, s_latest_new_card_path[slot].c_str());
 			}
 		} else {
-			memset(s_last_applied[slot], 0, sizeof(s_last_applied[slot]));
-			log_cb(RETRO_LOG_INFO, "[FBNeo PGM2 cards] slot P%d: latest_new_card_file: no timestamped card found.\n", slot + 1);
+			set_option_applied(slot, PGM2_OPT_EMPTY);
+			log_cb(RETRO_LOG_INFO, "[FBNeo PGM2 cards] slot P%d: latest_new_card_file: no timestamped card found. Use empty slot.\n", slot + 1);
 		}
 		return;
 	}
 
-	//Choose memory card file from 'g_save_dir'/fbneo/pgm2_memcards/. Default Card excluded.
-	int choice = atoi(var.value);
-	int fi = choice - 1;
-	if (fi < 0 || fi >= (int)s_file_paths[slot].size()) {
+	//Choose memory card file from file list('g_save_dir'/fbneo/pgm2_memcards/). Default Card excluded.
+	const char* target_file = var.value;
+	int fi = -1;
+	for (size_t i = 0; i < s_file_paths[slot].size(); i++) {
+		if (strcmp(s_file_paths[slot][i].c_str(), target_file) == 0) {
+			fi = (int)i;
+			break;
+		}
+	}
+	/* This branch is rarely triggered.
+	   When a selected file is deleted, its option is not regenerated on next load.
+	   RetroArch automatically falls back to the first option (the default) for invalid keys,
+	   so the environment variable is reset before reaching this code.
+	*/
+	if (fi < 0) {
+		set_option_applied(slot, PGM2_OPT_EMPTY);
 		log_cb(RETRO_LOG_WARN,
-			"[FBNeo PGM2 cards] slot P%d: invalid card index %d (have %u files); ignoring\n",
-			slot + 1, choice, (unsigned)s_file_paths[slot].size());
-		memset(s_last_applied[slot], 0, sizeof(s_last_applied[slot]));
+			"[FBNeo PGM2 cards] slot P%d: card file \"%s\" not found in scan list. Use empty slot.\n",
+			slot + 1, target_file);
 		return;
 	}
-
 	if (read_raw_card_file(s_file_paths[slot][fi].c_str(), s_pending_card_image, sizeof(s_pending_card_image))) {
 		reinsert_slot_with_pending_image(slot);
 		s_active_file_path[slot] = s_file_paths[slot][fi];

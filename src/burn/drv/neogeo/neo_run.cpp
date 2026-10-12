@@ -1365,7 +1365,7 @@ INT32 NeoScan(INT32 nAction, INT32* pnMin)
 					bMemoryCardInserted = false;
 
 					// If a card is inserted, determine the size
-					if (*((UINT16*)NeoMemoryCard) != 0x8000) {
+					if (BURN_ENDIAN_SWAP_INT16(*((UINT16*)NeoMemoryCard)) != 0x8000) {
 						INT32 nSize = (NeoMemoryCard[21] << 8) | NeoMemoryCard[23];
 						if (nSize >= 0x1000) {
 							ba.nLen = nSize;
@@ -2763,7 +2763,15 @@ static void NeoCDProcessCommand()
 
 				case 7: {
 					NeoCDCommsStatusFIFO[2] = 0;
-					NeoCDCommsStatusFIFO[3] = 2; // must be 02, 0E, 0F, or 05
+
+					// CDZ copy protection / disc recognition response
+					// Most games need 0x02, but Twinkle Star Sprites needs 0x0F
+					INT32 nGameID = SekReadWord(0x108);
+					if (nGameID == 0x0224) {			// Twinkle Star Sprites CD (TSS)
+						NeoCDCommsStatusFIFO[3] = 0x0F;
+					} else {
+						NeoCDCommsStatusFIFO[3] = 0x02;	// must be 02, 0E, 0F, or 05
+					}
 
 					NeoCDCommsStatusFIFO[4] = 0;
 					NeoCDCommsStatusFIFO[5] = 0;

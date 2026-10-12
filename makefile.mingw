@@ -98,6 +98,8 @@ endif
 srcdir	= src/
 
 include makefile.burn_rules
+#optional: include developer's makefile.burn_rules_dev
+-include makefile.burn_rules_dev
 include makefile.burner_win32_rules
 
 ifdef GCC345
@@ -361,7 +363,6 @@ endif
 
 ifdef BUILD_X64_EXE
 	DEF := $(DEF) -DBUILD_X64_EXE
-	# -DXBYAK_NO_OP_NAMES -DMIPS3_X64_DRC
 endif
 
 ifdef	SYMBOL
@@ -394,7 +395,10 @@ ifdef BUILD_NATIVE
 endif
 
 # For zlib
-DEF := $(DEF) -DNO_VIZ -D_LARGEFILE64_SOURCE=0 -D_FILE_OFFSET_BITS=32
+DEF := $(DEF) -DNO_VIZ -D_LARGEFILE64_SOURCE=0 -D_FILE_OFFSET_BITS=64
+
+# For libchdr
+DEF := $(DEF) -DCHDR_SYSTEM_ZLIB
 
 # For lib7z
 ifdef INCLUDE_7Z_SUPPORT
@@ -488,15 +492,13 @@ ifeq ($(MAKELEVEL),2)
 
 $(objdir)/drivers.o:		$(autdrv)
 	@echo Linking drivers...
-	$(file >$@.in,$^)
 ifdef BUILD_X64_EXE
-	@$(LD) -m64 -r -nostdlib -o $@ @$@.in
+	@$(LD) -m64 -r -nostdlib -o $@ $^
 else
-	@$(LD) -m32 -r -nostdlib -o $@ @$@.in
+	@$(LD) -m32 -r -nostdlib -o $@ $^
 endif
-	rm $@.in
 
-$(NAME).exe:	$(allobj) $(objdir)/drivers.o
+$(NAME).exe:	$(allobj) $(objdir)/drivers.o $(depobj)
 	@echo
 	@echo Linking executable... $(NAME).exe
 	@$(LD) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(lib)
@@ -671,6 +673,9 @@ $(cave_tile_func.h):	$(srcdir)dep/scripts/cave_tile_func.pl
 
 cave_sprite.d cave_sprite.o: $(cave_sprite_func.h)
 
+gba.d gba.o: $(srcdir)burn/drv/gba/gba.h $(srcdir)burn/drv/gba/gbacpu.h $(srcdir)burn/drv/gba/gbagpio.h $(srcdir)burn/drv/gba/gbacart.h $(srcdir)burn/drv/gba/gbabus.h $(srcdir)burn/drv/gba/gbatimer.h $(srcdir)burn/drv/gba/gbappu.h $(srcdir)burn/drv/gba/gbadma.h $(srcdir)burn/drv/gba/gbasio.h $(srcdir)burn/drv/gba/gbaapu.h $(srcdir)burn/drv/gba/gbabios.h
+d_gba.d d_gba.o: $(srcdir)burn/drv/gba/gba.h $(srcdir)burn/drv/gba/gbacpu.h
+
 $(cave_sprite_func.h):	$(srcdir)dep/scripts/cave_sprite_func.pl
 	@$(srcdir)dep/scripts/cave_sprite_func.pl -o $(cave_sprite_func.h)
 
@@ -748,6 +753,10 @@ ifeq ($(MAKELEVEL),1)
 	@echo Compiling $<...
 	@$(CC) $(CFLAGS) -c $< -o $(subst $(srcdir),$(objdir),$(<D))/$(@F)
 
+$(objdir)dep/libs/lzma/libchdr_lzma.o: $(srcdir)dep/libs/lzma/libchdr_lzma.c
+	@echo Compiling $<...
+	@$(CC) $(CFLAGS) -c $< -o $@
+
 %.o:	%.asm | init
 	@echo Assembling $<...
 	@$(AS) $(ASFLAGS) $< -o $(subst $(srcdir),$(objdir),$(<D))/$(@F)
@@ -759,6 +768,10 @@ else
 	@$(CXX) $(CXXFLAGS) -c $< -o $@
 
 %.o:	%.c
+	@echo Compiling $<...
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(objdir)dep/libs/lzma/libchdr_lzma.o: $(srcdir)dep/libs/lzma/libchdr_lzma.c
 	@echo Compiling $<...
 	@$(CC) $(CFLAGS) -c $< -o $@
 
